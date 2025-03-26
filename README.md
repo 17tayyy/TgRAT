@@ -1,4 +1,4 @@
-# 🧠 C2OverTG - Telegram-Based Command and Control Server
+# 🧠 TgRAT - Telegram-Based Command and Control Server
 
 **C2OverTG** is a multi-client *Command & Control* (C2) framework that uses a **Telegram group with forum topics** as a communication channel between a central server and its agents. Each agent creates a dedicated thread for interaction, while the general channel allows global control of all bots.
 
