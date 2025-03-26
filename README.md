@@ -72,7 +72,8 @@
 - [ ] Tagging/grouping system for bots (e.g. by OS, location)
 - [ ] Basic anti-debug & evasion in agent (sandbox, VM detection)
 - [ ] Cross-platform agent (Windows, Linux, MacOS)
-- [ ] File exfiltration (`/upload`, `/download`)
+- [ ] Webcam control
+- [x] File exfiltration (`/upload`, `/download`)
 - [ ] Keylogging and ransomware included on the agent
 - [ ] Alternate C2 channels (Discord, HTTP over CDN, direct Telegram API)
 - [ ] Optional web dashboard (clients list, commands, status, etc.)
