@@ -40,6 +40,8 @@
 - `/shell <command>` – Execute a command on the client
 - `/screenshot` – Take a screenshot and send it back
 - `/delete` – Delete the client thread
+- `/download <file path>` – Download a file from the agent
+- `/upload <file path>` – Upload a file to the agent
 
 ### In the main thread (global)
 - `/sendall <command>` – Execute command on all clients
