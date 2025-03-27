@@ -1,0 +1,7 @@
+pyTelegramBotAPI==4.14.0
+requests
+python-dotenv
+pycryptodome
+mss
+pillow
+termcolor
