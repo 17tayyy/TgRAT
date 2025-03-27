@@ -5,3 +5,4 @@ pycryptodome
 mss
 pillow
 termcolor
+opencv-python
