@@ -495,6 +495,7 @@ class C2Server:
 
     def shutdown(self, sig, frame):
         print(colored("\n[!] Shuting Down the server...", 'red'))
+        print("\033[?25h", end="", flush=True)
         if self.server:
             self.server.close()
         for session in self.clients.values():
@@ -541,9 +542,11 @@ def handle_document(message):
 
 if __name__ == "__main__":
     try:
+        print("\033[?25l", end="", flush=True)
         c2 = C2Server()
         bot.message_handler(func=lambda message: True)(c2.handle_command)
         threading.Thread(target=c2.start_server, daemon=True).start()
         bot.polling()
     except Exception as e:
+        print("\033[?25h", end="", flush=True)
         print(colored(f"[!] Error: {e}", 'red'))
