@@ -4,6 +4,24 @@
 
 > ⚠️ For educational purposes only.
 
+## 🎞️ Images
+![Server en consola](https://github.com/user-attachments/assets/7496d3be-5b43-46af-a615-d6ae458a5dfa)
+
+![New Connection](https://github.com/user-attachments/assets/fccef3ae-44ea-480a-9ac6-994e8c036db0)
+
+![Client tay whoami](https://github.com/user-attachments/assets/ea8555b0-3adc-423e-ac28-5e0c99ac6ba8)
+
+![Uploaded Succesfully](https://github.com/user-attachments/assets/e2428b57-0bc7-45c9-8f24-dfd98e43528b)
+
+![Downloaded Succesfully](https://github.com/user-attachments/assets/9467a452-e44d-4817-b0f3-278505d802f6)
+
+![Screenshot](https://github.com/user-attachments/assets/e91c1df5-0202-4470-9919-4a12f8337f99)
+
+![Sendall whoami](https://github.com/user-attachments/assets/d6383c40-6cd5-4563-899f-9fe370b01a9f)
+
+![statusall](https://github.com/user-attachments/assets/43c85222-452d-4b45-a3d3-18ec549e4806)
+
+
 ---
 
 ## 🚀 Features
