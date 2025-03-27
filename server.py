@@ -96,11 +96,11 @@ class C2Server:
         while True:
             try:
                 client_socket, client_address = self.server.accept()
-                print(f"[+] New connection {client_address}")
+                print(colored(f"[+] New connection {client_address}", 'green'))
                 client_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address), daemon=True)
                 client_thread.start()
             except Exception as e:
-                print(f"[C2] Error with the connection: {e}")
+                print(colored(f"[C2] Error with the connection: {e}", 'red'))
 
     def get_info_ip(self, ip):
         try:
@@ -171,7 +171,7 @@ class C2Server:
             bot.send_message(C2_CHANNEL_ID, help_message, parse_mode="Markdown", message_thread_id=session.topic_id)
 
         except Exception as e:
-            print(f"Error with the client {client_address}: {e}")
+            print(colored(f"Error with the client {client_address}: {e}", 'red'))
 
     def handle_command(self, message):
 
@@ -239,7 +239,7 @@ class C2Server:
 
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError) as e:
                 bot.send_message(C2_CHANNEL_ID, f"[{ip}] ❌ DISCONNECTED")
-                print(f"[!] Client {ip} disconnected: {e}")
+                print(colored(f"[!] Client {ip} disconnected: {e}", 'red'))
                 session.close()
                 to_remove.append(ip)
 
@@ -293,7 +293,7 @@ class C2Server:
 
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError) as e:
             bot.send_message(C2_CHANNEL_ID, f"[!] Client *DISCONNECTED*", message_thread_id=message_thread_id, parse_mode="Markdown")
-            print(f"[!] Client {client_ip} disconnected: {e}")
+            print(colored(f"[!] Client {client_ip} disconnected: {e}", 'red'))
             session.close()
             del self.clients[client_ip]
 
@@ -398,7 +398,7 @@ class C2Server:
 
 
     def shutdown(self, sig, frame):
-        print("\n[!] Shuting Down the server...")
+        print(colored("\n[!] Shuting Down the server...", 'red'))
         if self.server:
             self.server.close()
         for session in self.clients.values():
@@ -450,4 +450,4 @@ if __name__ == "__main__":
         threading.Thread(target=c2.start_server, daemon=True).start()
         bot.polling()
     except Exception as e:
-        print(f"[!] Error: {e}")
+        print(colored(f"[!] Error: {e}", 'red'))
