@@ -68,7 +68,7 @@ class C2Server:
         self.init_db()
 
     def init_db(self):
-        conn = sqlite3.connect("c2.db")
+        conn = sqlite3.connect("agents.db")
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS clients (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
