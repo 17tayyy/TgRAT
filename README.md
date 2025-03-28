@@ -70,7 +70,7 @@
 - `/sendall <command>` – Execute command on all clients
 - `/statusall` – Check connection status for all clients
 - `/shutdown` – Gracefully shut down the C2 server
-- `/photoall` – Takes a photo from default webcam  of the allclients
+- `/photoall` – Takes a photo from default webcam  of all the clients
 
 ---
 
