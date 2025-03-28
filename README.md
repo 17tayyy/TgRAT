@@ -64,7 +64,7 @@
 - `/upload <file path>` – Upload a file to the agent
 - `/listwebcams` – Return the index of available cameras
 - `/photo <camera index>` – Take Photo from the webcam
-- `/upload <file path>` – Takes a video from the webcam
+- `/stream <camera index> <time> <fps>` – Takes a video from the webcam
 
 ### In the main thread (global)
 - `/sendall <command>` – Execute command on all clients
