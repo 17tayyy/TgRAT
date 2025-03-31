@@ -105,7 +105,7 @@
 
 ## ⚙️ Setup
 
-An spanish Set-Up guide is on [My Blog](https://17tay.pages.dev)
+An spanish Set-Up guide is on [My Blog](https://17tay.pages.dev/posts/post-c2-sobre-telegram/#set-up)
 
 ---
 
