@@ -32,6 +32,16 @@
 - Socket-based communication (TCP)
 - Commands and responses are structured and encoded
 
+### 🧠 Logging System
+- Optional logging system (`/logs`) with dedicated forum topic
+- Logs include timestamp and command information
+- Can be enabled/disabled at runtime
+
+### 🫀 Heartbeat System
+- Agents send heartbeat messages every 30 seconds
+- Server updates `last_seen` field in the database for each agent
+- Used in `/listclients` and cleanup logic to detect inactive bots
+
 ### 📦 Server
 - Built in Python using `pyTelegramBotAPI`
 - Creates a forum topic per agent
@@ -68,6 +78,9 @@
 
 ### In the main thread (global)
 - `/sendall <command>` – Execute command on all clients
+- `/logs` -  Start/Stop the logging system in a channel named Logs
+- `/listclients` - List all registered clients
+- `/clean` -  Deletes duplicate or inactive (48h+) clients and their topics
 - `/statusall` – Check connection status for all clients
 - `/shutdown` – Gracefully shut down the C2 server
 - `/photoall` – Takes a photo from default webcam  of all the clients
@@ -91,13 +104,19 @@
 
 ---
 
+## ⚙️ Setup
+
+An spanish Set-Up guide is on [My Blog](https://17tay.pages.dev)
+
+---
+
 ## 📋 TODO / Roadmap
 
-- [ ] Improve bot disconnection detection (ping-pong, heartbeat, etc.)
+- [x] Improve bot disconnection detection (ping-pong, heartbeat, etc.)
 - [ ] Agent persistence (registry, scheduled tasks)
 - [ ] Auto-update feature for agents
 - [ ] Authentication system for agents (pre-shared key or signature)
-- [ ] Command logging system (file or DB)
+- [x] Command logging system (file or DB)
 - [ ] Tagging/grouping system for bots (e.g. by OS, location)
 - [ ] Basic anti-debug & evasion in agent (sandbox, VM detection)
 - [ ] Cross-platform agent (Windows, Linux, MacOS)
