@@ -21,8 +21,6 @@
 
 ![statusall](https://github.com/user-attachments/assets/43c85222-452d-4b45-a3d3-18ec549e4806)
 
-
-
 ---
 
 ## 🚀 Features
@@ -54,6 +52,7 @@
 - Captures screenshots (`screenshot`)
 - Executes arbitrary shell commands (`shell`)
 - Sends encrypted responses back to server
+- Sends periodic heartbeats to indicate it's alive
 
 ### 🔐 Security
 - AES-256 with random IV for each message
