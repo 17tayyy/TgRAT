@@ -6,3 +6,5 @@ mss
 pillow
 termcolor
 opencv-python
+pywin32
+shutil

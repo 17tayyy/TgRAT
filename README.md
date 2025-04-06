@@ -21,6 +21,12 @@
 
 ![statusall](https://github.com/user-attachments/assets/43c85222-452d-4b45-a3d3-18ec549e4806)
 
+![dumpchrome](https://github.com/user-attachments/assets/492b5b53-1f81-46dc-8335-ee8faa492aef)
+
+![photo](https://github.com/user-attachments/assets/fa67d0db-f7c9-4f65-9674-2aea29c4f52a)
+
+![video](https://github.com/user-attachments/assets/56274b5c-c2aa-4e0c-b731-07625a024c1e)
+
 ---
 
 ## 🚀 Features
@@ -74,6 +80,7 @@
 - `/listwebcams` – Return the index of available cameras
 - `/photo <camera index>` – Take Photo from the webcam
 - `/stream <camera index> <time> <fps>` – Takes a video from the webcam
+- `/dumpchrome` – Dump all the google chrome credentials
 
 ### In the main thread (global)
 - `/sendall <command>` – Execute command on all clients
@@ -112,13 +119,13 @@ An spanish Set-Up guide is on [My Blog](https://17tay.pages.dev/posts/post-c2-so
 ## 📋 TODO / Roadmap
 
 - [x] Improve bot disconnection detection (ping-pong, heartbeat, etc.)
-- [ ] Agent persistence (registry, scheduled tasks)
+- [x] Agent persistence (registry, scheduled tasks)
 - [ ] Auto-update feature for agents
 - [ ] Authentication system for agents (pre-shared key or signature)
 - [x] Command logging system (file or DB)
 - [ ] Tagging/grouping system for bots (e.g. by OS, location)
 - [ ] Basic anti-debug & evasion in agent (sandbox, VM detection)
-- [ ] Cross-platform agent (Windows, Linux, MacOS)
+- [x] Cross-platform agent (Windows, Linux)
 - [x] Webcam control
 - [x] File exfiltration (`/upload`, `/download`)
 - [ ] Keylogging and ransomware included on the agent

